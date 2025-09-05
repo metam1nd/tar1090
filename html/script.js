@@ -139,6 +139,8 @@ let enableDynamicCachebusting = false;
 g.lastRefreshInt = 1000;
 let reapTimeout = globeIndex ? 240 : 480;
 
+let coordDisplayEl;
+
 
 let baroCorrectQNH = 1013.25;
 
@@ -2895,7 +2897,59 @@ function initMap() {
         });
         drawInteraction.on('drawend', function(evt) {
             const geom = evt.feature.getGeometry();
-            if (measure === 'length') {
+            if (type === 'Point' && !measure) {
+                const ll = ol.proj.toLonLat(geom.getCoordinates());
+                const lat = ll[1].toFixed(6);
+                const lon = ll[0].toFixed(6);
+                evt.feature.setStyle(new ol.style.Style({
+                    image: new ol.style.Icon({
+                        src: 'images/map-icon.png',
+                        anchor: [0.5, 1]
+                    })
+                }));
+                const el = document.createElement('div');
+                el.className = 'measure-label';
+                const chip = document.createElement('div');
+                chip.className = 'measure-chip';
+                chip.textContent = 'Lat: ' + lat + ', Lng: ' + lon + ' ';
+                const qrBtn = document.createElement('button');
+                qrBtn.className = 'qr-toggle';
+                qrBtn.textContent = '\uD83D\uDCF7';
+                chip.appendChild(qrBtn);
+                el.appendChild(chip);
+                const overlay = new ol.Overlay({
+                    element: el,
+                    position: geom.getCoordinates(),
+                    offset: [0, -35],
+                    positioning: 'bottom-center'
+                });
+                OLMap.addOverlay(overlay);
+
+                let qrOverlay = null;
+                qrBtn.addEventListener('click', function() {
+                    if (qrOverlay) {
+                        OLMap.removeOverlay(qrOverlay);
+                        qrOverlay = null;
+                    } else {
+                        const qDiv = document.createElement('div');
+                        qDiv.className = 'qr-label';
+                        const img = document.createElement('img');
+                        img.className = 'qr-img';
+                        const tmp = document.createElement('div');
+                        new QRCode(tmp, { text: 'https://www.google.com/maps?q=' + lat + ',' + lon, width:78, height:78 });
+                        const canvas = tmp.querySelector('canvas');
+                        img.src = canvas.toDataURL('image/png');
+                        qDiv.appendChild(img);
+                        qrOverlay = new ol.Overlay({
+                            element: qDiv,
+                            position: geom.getCoordinates(),
+                            offset: [70, -30],
+                            positioning: 'bottom-center'
+                        });
+                        OLMap.addOverlay(qrOverlay);
+                    }
+                });
+            } else if (measure === 'length') {
                 const length = geom.getLength();
                 alert('Length: ' + formatLength(length));
             } else if (measure === 'area') {
@@ -2929,6 +2983,10 @@ function initMap() {
 
 
     ol_map_init();
+    coordDisplayEl = document.getElementById('mouse-coordinates');
+    OLMap.getViewport().addEventListener('mouseout', function(){
+        if (coordDisplayEl) coordDisplayEl.textContent = 'Lat: ---, Lng: ---';
+    });
 
     document.getElementById('draw_marker').addEventListener('click', function() {
         setActiveButton(this);
@@ -5969,8 +6027,10 @@ function mapRefresh(redraw) {
 }
 
 function onPointermove(evt) {
-    //clearTimeout(pointerMoveTimeout);
-    //pointerMoveTimeout = setTimeout(highlight(evt), 100);
+    if (coordDisplayEl) {
+        const coord = ol.proj.toLonLat(evt.coordinate);
+        coordDisplayEl.textContent = 'Lat: ' + coord[1].toFixed(5) + ', Lng: ' + coord[0].toFixed(5);
+    }
     highlight(evt);
 }
 
