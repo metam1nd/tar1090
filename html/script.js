@@ -38,6 +38,7 @@ let realHeat;
 let drawSource = new ol.source.Vector();
 let drawLayer;
 let drawInteraction = null;
+let activeDrawButton = null;
 let iconCache = {};
 let addToIconCache = [];
 let lineStyleCache = {};
@@ -2876,6 +2877,16 @@ function initMap() {
     });
     layers.push(iconLayer);
 
+    function setActiveButton(btn) {
+        if (activeDrawButton) {
+            activeDrawButton.classList.remove('active');
+        }
+        activeDrawButton = btn;
+        if (btn) {
+            btn.classList.add('active');
+        }
+    }
+
     function activateDraw(type, measure) {
         removeDraw();
         drawInteraction = new ol.interaction.Draw({
@@ -2883,10 +2894,13 @@ function initMap() {
             type: type,
         });
         drawInteraction.on('drawend', function(evt) {
-            if (measure) {
-                const geom = evt.feature.getGeometry();
+            const geom = evt.feature.getGeometry();
+            if (measure === 'length') {
                 const length = geom.getLength();
                 alert('Length: ' + formatLength(length));
+            } else if (measure === 'area') {
+                const area = geom.getArea();
+                alert('Area: ' + formatArea(area));
             }
             removeDraw();
         });
@@ -2898,6 +2912,7 @@ function initMap() {
             OLMap.removeInteraction(drawInteraction);
             drawInteraction = null;
         }
+        setActiveButton(null);
     }
 
     function clearDrawings() {
@@ -2908,17 +2923,32 @@ function initMap() {
         return (length / 1000).toFixed(2) + ' km';
     }
 
+    function formatArea(area) {
+        return (area / 1000000).toFixed(2) + ' km²';
+    }
+
 
     ol_map_init();
 
     document.getElementById('draw_marker').addEventListener('click', function() {
+        setActiveButton(this);
         activateDraw('Point');
     });
     document.getElementById('draw_line').addEventListener('click', function() {
+        setActiveButton(this);
         activateDraw('LineString');
     });
-    document.getElementById('measure').addEventListener('click', function() {
-        activateDraw('LineString', true);
+    document.getElementById('draw_polygon').addEventListener('click', function() {
+        setActiveButton(this);
+        activateDraw('Polygon');
+    });
+    document.getElementById('measure_line').addEventListener('click', function() {
+        setActiveButton(this);
+        activateDraw('LineString', 'length');
+    });
+    document.getElementById('measure_area').addEventListener('click', function() {
+        setActiveButton(this);
+        activateDraw('Polygon', 'area');
     });
     document.getElementById('clear_drawings').addEventListener('click', function() {
         clearDrawings();

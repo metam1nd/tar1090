@@ -106,19 +106,46 @@ select {
     top: 50px;
     left: 10px;
     z-index: 1000;
-    background: rgba(255,255,255,0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(255,255,255,0.9);
     border-radius: 4px;
     padding: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
 #drawing_toolbar button {
-    display: block;
     width: 32px;
     height: 32px;
-    margin: 2px 0;
-    background: #fff;
-    border: 1px solid #aaa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--TXTCOLOR2);
+    border-radius: 4px;
+}
+
+#drawing_toolbar button:hover {
+    background: rgba(0,0,0,0.1);
+}
+
+#drawing_toolbar button.active {
+    background: var(--ACCENT);
+    color: #fff;
+}
+
+#drawing_toolbar button svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+}
+
+#drawing_toolbar button svg path {
+    fill: currentColor;
 }
 
 .sidebar_button {
