@@ -43,7 +43,8 @@ drawSource.on('removefeature', function(evt) {
 let drawLayer;
 let drawInteraction = null;
 let activeDrawButton = null;
-const DRAW_MARKER_ICON = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>');
+const DRAW_MARKER_ICON = 'data:image/svg+xml;utf8,' +
+    encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>');
 let iconCache = {};
 let addToIconCache = [];
 let lineStyleCache = {};
@@ -2910,7 +2911,8 @@ function initMap() {
                 evt.feature.setStyle(new ol.style.Style({
                     image: new ol.style.Icon({
                         src: DRAW_MARKER_ICON,
-                        anchor: [0.5, 1]
+                        anchor: [0.5, 1],
+                        imgSize: [24, 24],
                     })
                 }));
                 const el = document.createElement('div');
