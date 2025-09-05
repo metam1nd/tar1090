@@ -36,9 +36,14 @@ let heatLayers = [];
 let realHeatFeatures = new ol.source.Vector();
 let realHeat;
 let drawSource = new ol.source.Vector();
+drawSource.on('removefeature', function(evt) {
+    const ov = evt.feature.get('overlay');
+    if (ov) OLMap.removeOverlay(ov);
+});
 let drawLayer;
 let drawInteraction = null;
 let activeDrawButton = null;
+const DRAW_MARKER_ICON = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>');
 let iconCache = {};
 let addToIconCache = [];
 let lineStyleCache = {};
@@ -2898,17 +2903,20 @@ function initMap() {
         drawInteraction.on('drawend', function(evt) {
             const geom = evt.feature.getGeometry();
             if (type === 'Point' && !measure) {
-                const ll = ol.proj.toLonLat(geom.getCoordinates());
+                const coords = geom.getCoordinates();
+                const ll = ol.proj.toLonLat(coords);
                 const lat = ll[1].toFixed(6);
                 const lon = ll[0].toFixed(6);
                 evt.feature.setStyle(new ol.style.Style({
                     image: new ol.style.Icon({
-                        src: 'images/map-icon.png',
+                        src: DRAW_MARKER_ICON,
                         anchor: [0.5, 1]
                     })
                 }));
                 const el = document.createElement('div');
-                el.className = 'measure-label';
+                el.className = 'measure-label point-label';
+                const info = document.createElement('div');
+                info.className = 'measure-info';
                 const chip = document.createElement('div');
                 chip.className = 'measure-chip';
                 chip.textContent = 'Lat: ' + lat + ', Lng: ' + lon + ' ';
@@ -2916,45 +2924,70 @@ function initMap() {
                 qrBtn.className = 'qr-toggle';
                 qrBtn.textContent = '\uD83D\uDCF7';
                 chip.appendChild(qrBtn);
-                el.appendChild(chip);
+                info.appendChild(chip);
+                el.appendChild(info);
                 const overlay = new ol.Overlay({
                     element: el,
-                    position: geom.getCoordinates(),
-                    offset: [0, -35],
-                    positioning: 'bottom-center'
+                    position: coords,
+                    offset: [10, -15],
+                    positioning: 'bottom-left'
                 });
                 OLMap.addOverlay(overlay);
+                evt.feature.set('overlay', overlay);
 
-                let qrOverlay = null;
+                let qrImg = null;
                 qrBtn.addEventListener('click', function() {
-                    if (qrOverlay) {
-                        OLMap.removeOverlay(qrOverlay);
-                        qrOverlay = null;
-                    } else {
-                        const qDiv = document.createElement('div');
-                        qDiv.className = 'qr-label';
-                        const img = document.createElement('img');
-                        img.className = 'qr-img';
-                        const tmp = document.createElement('div');
-                        new QRCode(tmp, { text: 'https://www.google.com/maps?q=' + lat + ',' + lon, width:78, height:78 });
-                        const canvas = tmp.querySelector('canvas');
-                        img.src = canvas.toDataURL('image/png');
-                        qDiv.appendChild(img);
-                        qrOverlay = new ol.Overlay({
-                            element: qDiv,
-                            position: geom.getCoordinates(),
-                            offset: [70, -30],
-                            positioning: 'bottom-center'
-                        });
-                        OLMap.addOverlay(qrOverlay);
+                    if (qrImg) {
+                        qrImg.remove();
+                        qrImg = null;
+                        return;
                     }
+                    const tmp = document.createElement('div');
+                    new QRCode(tmp, { text: 'https://www.google.com/maps?q=' + lat + ',' + lon, width:78, height:78 });
+                    const canvas = tmp.querySelector('canvas');
+                    qrImg = document.createElement('img');
+                    qrImg.className = 'qr-img';
+                    qrImg.src = canvas.toDataURL('image/png');
+                    el.appendChild(qrImg);
                 });
             } else if (measure === 'length') {
                 const length = geom.getLength();
-                alert('Length: ' + formatLength(length));
+                const el = document.createElement('div');
+                el.className = 'measure-label';
+                const info = document.createElement('div');
+                info.className = 'measure-info';
+                const chip = document.createElement('div');
+                chip.className = 'measure-chip';
+                chip.textContent = 'Length: ' + formatLength(length);
+                info.appendChild(chip);
+                el.appendChild(info);
+                const overlay = new ol.Overlay({
+                    element: el,
+                    position: geom.getCoordinateAt(0.5),
+                    offset: [0, -10],
+                    positioning: 'bottom-center'
+                });
+                OLMap.addOverlay(overlay);
+                evt.feature.set('overlay', overlay);
             } else if (measure === 'area') {
                 const area = geom.getArea();
-                alert('Area: ' + formatArea(area));
+                const el = document.createElement('div');
+                el.className = 'measure-label';
+                const info = document.createElement('div');
+                info.className = 'measure-info';
+                const chip = document.createElement('div');
+                chip.className = 'measure-chip';
+                chip.textContent = 'Area: ' + formatArea(area);
+                info.appendChild(chip);
+                el.appendChild(info);
+                const overlay = new ol.Overlay({
+                    element: el,
+                    position: geom.getInteriorPoint().getCoordinates(),
+                    offset: [0, -10],
+                    positioning: 'bottom-center'
+                });
+                OLMap.addOverlay(overlay);
+                evt.feature.set('overlay', overlay);
             }
             removeDraw();
         });
