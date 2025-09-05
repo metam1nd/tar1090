@@ -38,6 +38,10 @@ let realHeat;
 let iconCache = {};
 let addToIconCache = [];
 let lineStyleCache = {};
+let drawSource;
+let drawnGeoJSON = "";
+let drawInteraction;
+let selectInteraction;
 let replayPlanes = {};
 let PlaneFilter   = {};
 let SelectedPlane = null;
@@ -2510,6 +2514,76 @@ function ol_map_init() {
     webglInit();
     console.timeEnd('webglInit');
 
+
+    // Initialize drawing tools
+    drawSource = new ol.source.Vector({wrapX: false});
+    const drawLayer = new ol.layer.Vector({source: drawSource});
+    OLMap.addLayer(drawLayer);
+
+    const geojsonFormat = new ol.format.GeoJSON();
+    const updateGeoJSON = () => {
+        drawnGeoJSON = geojsonFormat.writeFeatures(drawSource.getFeatures());
+    };
+    drawSource.on('addfeature', updateGeoJSON);
+    drawSource.on('changefeature', updateGeoJSON);
+    drawSource.on('removefeature', updateGeoJSON);
+
+    selectInteraction = new ol.interaction.Select({layers: [drawLayer]});
+    OLMap.addInteraction(selectInteraction);
+
+    const modifyInteraction = new ol.interaction.Modify({
+        features: selectInteraction.getFeatures()
+    });
+    modifyInteraction.on('modifyend', updateGeoJSON);
+    OLMap.addInteraction(modifyInteraction);
+
+    const barElement = document.createElement('div');
+    barElement.className = 'ol-control ol-drawbar';
+
+    const startDraw = () => {
+        if (drawInteraction) {
+            OLMap.removeInteraction(drawInteraction);
+        }
+        drawInteraction = new ol.interaction.Draw({
+            source: drawSource,
+            type: 'Polygon'
+        });
+        drawInteraction.on('drawend', () => {
+            OLMap.removeInteraction(drawInteraction);
+            drawInteraction = null;
+            updateGeoJSON();
+        });
+        OLMap.addInteraction(drawInteraction);
+    };
+
+    const polyButton = document.createElement('button');
+    polyButton.innerHTML = '⬠';
+    polyButton.title = 'Draw polygon';
+    polyButton.addEventListener('click', startDraw);
+    barElement.appendChild(polyButton);
+
+    const delButton = document.createElement('button');
+    delButton.innerHTML = '🗑';
+    delButton.title = 'Delete selected';
+    delButton.addEventListener('click', () => {
+        selectInteraction.getFeatures().forEach(f => drawSource.removeFeature(f));
+        selectInteraction.getFeatures().clear();
+        updateGeoJSON();
+    });
+    barElement.appendChild(delButton);
+
+    const clearButton = document.createElement('button');
+    clearButton.innerHTML = '✖';
+    clearButton.title = 'Clear all';
+    clearButton.addEventListener('click', () => {
+        drawSource.clear();
+        selectInteraction.getFeatures().clear();
+        updateGeoJSON();
+    });
+    barElement.appendChild(clearButton);
+
+    const drawBarControl = new ol.control.Control({element: barElement});
+    OLMap.addControl(drawBarControl);
 
     let foundType = false;
     ol.control.LayerSwitcher.forEachRecursive(layers_group, function(lyr) {
