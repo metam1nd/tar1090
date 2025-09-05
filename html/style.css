@@ -101,6 +101,26 @@ select {
     height: 100%;
 }
 
+#drawing_toolbar {
+    position: absolute;
+    top: 50px;
+    left: 10px;
+    z-index: 1000;
+    background: rgba(255,255,255,0.8);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+#drawing_toolbar button {
+    display: block;
+    width: 32px;
+    height: 32px;
+    margin: 2px 0;
+    background: #fff;
+    border: 1px solid #aaa;
+    cursor: pointer;
+}
+
 .sidebar_button {
     width: calc( 32px * var(--SCALE));
     height: calc( 38px * var(--SCALE));

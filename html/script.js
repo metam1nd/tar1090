@@ -35,6 +35,9 @@ let heatFeaturesSpread = 1024;
 let heatLayers = [];
 let realHeatFeatures = new ol.source.Vector();
 let realHeat;
+let drawSource = new ol.source.Vector();
+let drawLayer;
+let drawInteraction = null;
 let iconCache = {};
 let addToIconCache = [];
 let lineStyleCache = {};
@@ -2510,6 +2513,12 @@ function ol_map_init() {
     webglInit();
     console.timeEnd('webglInit');
 
+    drawLayer = new ol.layer.Vector({
+        source: drawSource,
+        zIndex: 300,
+    });
+    OLMap.addLayer(drawLayer);
+
 
     let foundType = false;
     ol.control.LayerSwitcher.forEachRecursive(layers_group, function(lyr) {
@@ -2867,8 +2876,54 @@ function initMap() {
     });
     layers.push(iconLayer);
 
+    function activateDraw(type, measure) {
+        removeDraw();
+        drawInteraction = new ol.interaction.Draw({
+            source: drawSource,
+            type: type,
+        });
+        drawInteraction.on('drawend', function(evt) {
+            if (measure) {
+                const geom = evt.feature.getGeometry();
+                const length = geom.getLength();
+                alert('Length: ' + formatLength(length));
+            }
+            removeDraw();
+        });
+        OLMap.addInteraction(drawInteraction);
+    }
+
+    function removeDraw() {
+        if (drawInteraction) {
+            OLMap.removeInteraction(drawInteraction);
+            drawInteraction = null;
+        }
+    }
+
+    function clearDrawings() {
+        drawSource.clear();
+    }
+
+    function formatLength(length) {
+        return (length / 1000).toFixed(2) + ' km';
+    }
+
 
     ol_map_init();
+
+    document.getElementById('draw_marker').addEventListener('click', function() {
+        activateDraw('Point');
+    });
+    document.getElementById('draw_line').addEventListener('click', function() {
+        activateDraw('LineString');
+    });
+    document.getElementById('measure').addEventListener('click', function() {
+        activateDraw('LineString', true);
+    });
+    document.getElementById('clear_drawings').addEventListener('click', function() {
+        clearDrawings();
+        removeDraw();
+    });
 
     // handle the layer settings pane checkboxes
     //OLMap.once('postrender', function(e) {
